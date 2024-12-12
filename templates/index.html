@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Chat Assistant</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="flex flex-col lg:flex-row min-h-screen">
+        <div id="controlPanel" class="lg:w-1/3 p-6 bg-white shadow-lg transition-all duration-300 ease-in-out">
+            <button id="toggleControls" class="lg:hidden w-full mb-4 p-4 bg-gray-100 rounded-lg text-xl font-semibold flex items-center justify-between">
+                <span>Show/Hide Controls</span>
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+            </button>
+
+            <div id="controlContent" class="space-y-6">
+                <h1 class="text-3xl font-bold text-gray-800 mb-8">
+                    Voice Chat Assistant
+                </h1>
+
+                <div class="bg-blue-50 p-6 rounded-lg">
+                    <h2 class="text-2xl font-semibold text-blue-800 mb-4">How to Use:</h2>
+                    <ol class="text-xl text-blue-900 space-y-4">
+                        <li>1. Select your microphone below</li>
+                        <li>2. Click "Start Talking"</li>
+                        <li>3. Speak naturally</li>
+                    </ol>
+                </div>
+
+                <div class="bg-gray-50 p-6 rounded-lg">
+                    <label for="deviceSelect" class="block text-2xl font-semibold text-gray-700 mb-4">
+                        Select Your Microphone:
+                    </label>
+                    <select id="deviceSelect" class="w-full text-xl p-4 border-2 border-gray-300 rounded-lg focus:border-blue-500">
+                        <option value="">Please choose your microphone</option>
+                        {% for device in devices %}
+                        <option value="{{ device.id }}">{{ device.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Control Buttons -->
+                <div class="space-y-4">
+                    <button id="startButton" class="w-full bg-green-600 hover:bg-green-700 text-white text-2xl font-bold py-6 px-8 rounded-lg shadow-lg flex items-center justify-center gap-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                        </svg>
+                        Start Talking
+                    </button>
+                    
+                    <button id="refreshDevices" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-xl font-semibold py-4 px-6 rounded-lg shadow-md">
+                        Refresh Microphone List
+                    </button>
+                </div>
+
+                <div id="status" class="text-2xl text-center font-semibold text-gray-700">
+                    Ready to start
+                </div>
+            </div>
+        </div>
+
+        <div class="lg:w-2/3 p-6 bg-gray-100">
+            <div id="chatContainer" class="bg-white rounded-xl shadow-lg p-6 min-h-[calc(100vh-3rem)] overflow-y-auto space-y-6">
+                <div class="text-xl text-gray-500 text-center">
+                    Your conversation will appear here
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isRunning = false;
+
+        $('#toggleControls').click(function() {
+            const content = $('#controlContent');
+            content.toggleClass('hidden lg:block');
+            const panel = $('#controlPanel');
+            panel.toggleClass('h-auto h-20');
+        });
+
+        function updateDeviceList() {
+            $.get('/devices', function(devices) {
+                const select = $('#deviceSelect');
+                select.empty();
+                select.append('<option value="">Please choose your microphone</option>');
+                devices.forEach(device => {
+                    select.append(`<option value="${device.id}">${device.name}</option>`);
+                });
+            });
+        }
+
+        function updateChat() {
+            $.get('/get_messages', function(data) {
+                const chatContainer = $('#chatContainer');
+                if (data.length === 0) return;
+                
+                chatContainer.empty();
+                data.forEach(message => {
+                    chatContainer.append(`
+                        <div class="mb-8">
+                            <div class="bg-blue-50 p-4 rounded-lg text-xl">
+                                <div class="font-semibold text-blue-900 mb-2">You said:</div>
+                                <div class="text-gray-800">${message.user}</div>
+                                <div class="text-sm text-gray-500 mt-2">${message.timestamp}</div>
+                            </div>
+                            
+                            <div class="bg-gray-50 p-4 rounded-lg text-xl mt-4">
+                                <div class="font-semibold text-gray-900 mb-2">Assistant replied:</div>
+                                <div class="text-gray-800">${message.ai}</div>
+                                <div class="text-sm text-gray-500 mt-2">${message.timestamp}</div>
+                            </div>
+                        </div>
+                    `);
+                });
+                
+                chatContainer.scrollTop(chatContainer[0].scrollHeight);
+            });
+        }
+
+        $('#startButton').click(function() {
+            if (!isRunning) {
+                const deviceId = $('#deviceSelect').val();
+                if (!deviceId) {
+                    alert('Please select a microphone first');
+                    $('#deviceSelect').focus();
+                    return;
+                }
+                
+                $.ajax({
+                    url: '/start',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ deviceId: deviceId }),
+                    success: function(data) {
+                        $('#status').text('Listening to you now...');
+                        $('#startButton').text('Listening...').addClass('bg-red-600').removeClass('bg-green-600');
+                        isRunning = true;
+                    }
+                });
+            }
+        });
+
+        $('#refreshDevices').click(function() {
+            updateDeviceList();
+            $('#status').text('Microphone list updated');
+        });
+
+        if (window.innerWidth < 1024) {
+            $('#controlContent').addClass('hidden');
+            $('#controlPanel').addClass('h-20');
+        }
+
+        // Update chat every 2 seconds
+        setInterval(updateChat, 2000);
+    </script>
+</body>
+</html>
