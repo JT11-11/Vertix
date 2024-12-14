@@ -9,9 +9,11 @@ import time
 import os
 from weather_service import WeatherService
 from transformers import pipeline
+from gtts import gTTS
+from playsound import playsound
 
 app = Flask(__name__)
-client = OpenAI(api_key='API-Key')
+client = OpenAI(api_key='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')
 weather_service = WeatherService()
 
 emotion_classifier = pipeline(
@@ -146,7 +148,8 @@ def record_audio(device_id=None):
         if not audio_recorder.audio_buffer:
             raise ValueError("No audio data recorded")
         
-        audio_data = np.concatenate(audio_data, axis=0)
+        # Use the audio_recorder's buffer instead of undefined audio_data
+        audio_data = np.concatenate(audio_recorder.audio_buffer, axis=0)
         temp_filename = f"temp_{int(time.time())}.wav"
         
         # Save to temporary WAV file
@@ -205,8 +208,20 @@ def get_chatgpt_response(text, emotion):
     )
     return response.choices[0].message.content
 
+def text_to_speech(text):
+    """Convert text to speech and play it"""
+    try:
+        audio_file = f"response_{int(time.time())}.mp3"
+        tts = gTTS(text=text, lang='en', slow=False)
+        tts.save(audio_file)
+        playsound(audio_file)
+        os.remove(audio_file)
+    except Exception as e:
+        print(f"Error in text to speech: {str(e)}")
+
+
 def conversation_loop(device_id):
-    """Main conversation loop"""
+    """Main conversation loop with text-to-speech"""
     while True:
         try:
             # Record audio
@@ -224,6 +239,9 @@ def conversation_loop(device_id):
             response = get_chatgpt_response(transcription, dominant_emotion)
             print(f"AI responds: {response}")
             
+            # Convert response to speech and play it
+            text_to_speech(response)
+            
             # Store in conversation history
             conversation_history.append({
                 "user": transcription,
@@ -239,6 +257,7 @@ def conversation_loop(device_id):
         except Exception as e:
             print(f"Error in conversation loop: {str(e)}")
             time.sleep(1)
+    
 
 # Flask routes
 @app.route('/')
