@@ -13,7 +13,7 @@ from gtts import gTTS
 from playsound import playsound
 
 app = Flask(__name__)
-client = OpenAI(api_key='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')
+client = OpenAI(api_key='')
 weather_service = WeatherService()
 
 emotion_classifier = pipeline(
