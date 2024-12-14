@@ -7,13 +7,50 @@ import threading
 import queue
 import time
 import os
+from weather_service import WeatherService
+from transformers import pipeline
 
 app = Flask(__name__)
-client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+client = OpenAI(api_key='API-Key')
+weather_service = WeatherService()
 
-# Global variables
+emotion_classifier = pipeline(
+    "text-classification",
+    model="j-hartmann/emotion-english-distilroberta-base",
+    return_all_scores=True
+)
+
+class EmotionDetector:
+    def __init__(self):
+        self.emotions_history = []
+        
+    def detect_emotion(self, text):
+        try:
+            emotions = emotion_classifier(text)[0]
+            emotions.sort(key=lambda x: x['score'], reverse=True)
+            dominant_emotion = emotions[0]['label']
+            
+            self.emotions_history.append({
+                'text': text,
+                'dominant_emotion': dominant_emotion,
+                'all_emotions': emotions,
+                'timestamp': time.strftime("%H:%M:%S")
+            })
+            
+            return dominant_emotion, emotions
+        except Exception as e:
+            print(f"Error detecting emotion: {str(e)}")
+            return "neutral", []
+    
+    def get_emotion_history(self):
+        return self.emotions_history
+
+emotion_detector = EmotionDetector()
+
 audio_queue = queue.Queue()
 SAMPLE_RATE = 16000
+CHANNELS = 1
+CHUNK_SIZE = 1024
 conversation_history = []
 
 def list_audio_devices():
@@ -30,11 +67,13 @@ def list_audio_devices():
     return input_devices
 
 def audio_callback(indata, frames, time, status):
+    """Callback function for audio stream"""
     if status:
         print('Audio callback status:', status)
     audio_queue.put(indata.copy())
 
 def record_audio(duration=5, device_id=None):
+    """Record audio from the specified device"""
     print(f"🎤 Recording using device {device_id}...")
     audio_data = []
     
@@ -49,20 +88,26 @@ def record_audio(duration=5, device_id=None):
         stream = sd.InputStream(
             device=device_id,
             callback=audio_callback,
-            channels=1,
-            samplerate=SAMPLE_RATE
+            channels=CHANNELS,
+            samplerate=SAMPLE_RATE,
+            blocksize=CHUNK_SIZE
         )
         
         with stream:
+            # Record for specified duration
             sd.sleep(int(duration * 1000))
+            # Collect all audio data from queue
             while not audio_queue.empty():
                 audio_data.append(audio_queue.get())
         
         if not audio_data:
             raise ValueError("No audio data recorded")
         
+        # Concatenate all audio chunks
         audio_data = np.concatenate(audio_data, axis=0)
         temp_filename = f"temp_{int(time.time())}.wav"
+        
+        # Save to temporary WAV file
         sf.write(temp_filename, audio_data, SAMPLE_RATE)
         
         return temp_filename
@@ -72,47 +117,88 @@ def record_audio(duration=5, device_id=None):
         raise
 
 def transcribe_audio(file_path):
+    """Transcribe audio file using OpenAI Whisper"""
     print("📝 Transcribing audio...")
-    with open(file_path, 'rb') as audio_file:
-        transcript = client.audio.transcriptions.create(
-            model="whisper-1",
-            file=audio_file
-        )
-    return transcript.text
+    try:
+        with open(file_path, 'rb') as audio_file:
+            transcript = client.audio.transcriptions.create(
+                model="whisper-1",
+                file=audio_file
+            )
+        return transcript.text
+    except Exception as e:
+        print(f"Error transcribing audio: {str(e)}")
+        raise
 
-def get_chatgpt_response(text):
+def get_chatgpt_response(text, emotion):
+    """Get response from ChatGPT with emotion awareness"""
     print("🤖 Getting AI response...")
+    
+    # Check if it's a weather-related query
+    if any(word in text.lower() for word in ['weather', 'temperature', 'forecast']):
+        city, forecast_days = weather_service.parse_weather_query(text)
+        if city:
+            weather_data = weather_service.get_weather(city, forecast_days)
+            return weather_service.format_weather_response(weather_data, city, forecast_days)
+    
+    # Include emotion context in the system message
+    system_message = f"""You are a helpful assistant that is aware the user's current emotional state appears to be {emotion}. 
+    If the emotion is:
+    - joy: maintain an upbeat and encouraging tone
+    - sadness: be empathetic and supportive
+    - anger: remain calm and understanding
+    - fear: be reassuring and clear
+    - surprise: acknowledge their reaction and provide clear context
+    - disgust: be professional and objective
+    - neutral: maintain a balanced, friendly tone
+    
+    Always ensure your response is helpful and professional while being mindful of their emotional state."""
+    
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
-            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "system", "content": system_message},
             {"role": "user", "content": text}
         ]
     )
     return response.choices[0].message.content
 
 def conversation_loop(device_id):
+    """Main conversation loop"""
     while True:
         try:
+            # Record audio
             audio_file = record_audio(device_id=device_id)
+            
+            # Transcribe audio to text
             transcription = transcribe_audio(audio_file)
             print(f"User said: {transcription}")
             
-            response = get_chatgpt_response(transcription)
+            # Detect emotion
+            dominant_emotion, emotion_scores = emotion_detector.detect_emotion(transcription)
+            print(f"Detected emotion: {dominant_emotion}")
+            
+            # Get emotion-aware response
+            response = get_chatgpt_response(transcription, dominant_emotion)
             print(f"AI responds: {response}")
             
+            # Store in conversation history
             conversation_history.append({
                 "user": transcription,
+                "emotion": dominant_emotion,
+                "emotion_scores": emotion_scores,
                 "ai": response,
                 "timestamp": time.strftime("%H:%M:%S")
             })
             
+            # Cleanup temporary audio file
             os.remove(audio_file)
             
         except Exception as e:
             print(f"Error in conversation loop: {str(e)}")
             time.sleep(1)  # Prevent rapid error loops
 
+# Flask routes
 @app.route('/')
 def home():
     devices = list_audio_devices()
@@ -137,8 +223,12 @@ def start_conversation():
 def get_messages():
     return jsonify(conversation_history)
 
+@app.route('/emotion_history')
+def get_emotion_history():
+    return jsonify(emotion_detector.get_emotion_history())
+
 if __name__ == '__main__':
-    print("🚀 Starting voice chat server...")
+    print("🚀 Starting voice chat server with emotion detection...")
     print("Available audio input devices:")
     for device in list_audio_devices():
         print(f"ID: {device['id']}, Name: {device['name']}")
