@@ -53,6 +53,25 @@ CHANNELS = 1
 CHUNK_SIZE = 1024
 conversation_history = []
 
+# Voice activity detection parameters
+SILENCE_THRESHOLD = 0.01
+SILENCE_DURATION = 5
+CHUNK_DURATION = 0.1  # Process audio in 100ms chunks
+CHUNK_SIZE = int(SAMPLE_RATE * CHUNK_DURATION)
+
+class AudioRecorder:
+    def __init__(self):
+        self.recording_active = False
+        self.last_voice_activity = 0
+        self.audio_buffer = []
+        
+    def reset(self):
+        self.recording_active = False
+        self.last_voice_activity = 0
+        self.audio_buffer = []
+
+audio_recorder = AudioRecorder()
+
 def list_audio_devices():
     """List all available audio input devices"""
     devices = sd.query_devices()
@@ -66,16 +85,34 @@ def list_audio_devices():
             })
     return input_devices
 
-def audio_callback(indata, frames, time, status):
+def detect_voice_activity(audio_data):
+    """Detect if there is voice activity in the audio data"""
+    chunks = np.array_split(audio_data, max(1, len(audio_data) // CHUNK_SIZE))
+    rms_values = [np.sqrt(np.mean(chunk**2)) for chunk in chunks]
+    return max(rms_values) > SILENCE_THRESHOLD
+
+def audio_callback(indata, frames, time_info, status):
+    """Callback for audio stream"""
     """Callback function for audio stream"""
     if status:
         print('Audio callback status:', status)
-    audio_queue.put(indata.copy())
+    
+    if indata.shape[1] > 1:
+        indata = np.mean(indata, axis=1, keepdims=True)
 
-def record_audio(duration=5, device_id=None):
-    """Record audio from the specified device"""
+    if detect_voice_activity(indata):
+        audio_recorder.last_voice_activity = time.time()
+        if not audio_recorder.recording_active:
+            audio_recorder.recording_active = True
+            print("Voice detected - recording started")
+    
+    if audio_recorder.recording_active:
+        audio_recorder.audio_buffer.append(indata.copy())
+
+def record_audio(device_id=None):
+    """Record audio with improved quality and silence detection"""
     print(f"🎤 Recording using device {device_id}...")
-    audio_data = []
+    audio_recorder.reset()
     
     if device_id is None:
         devices = list_audio_devices()
@@ -85,25 +122,30 @@ def record_audio(duration=5, device_id=None):
             raise ValueError("No input devices found")
     
     try:
-        stream = sd.InputStream(
+        with sd.InputStream(
             device=device_id,
-            callback=audio_callback,
-            channels=CHANNELS,
+            channels=1,
             samplerate=SAMPLE_RATE,
+            callback=audio_callback,
             blocksize=CHUNK_SIZE
-        )
+        ):
+            audio_recorder.recording_active = True
+            audio_recorder.last_voice_activity = time.time()
+            
+            # Keep recording until sufficient silence is detected
+            while True:
+                time.sleep(0.1)  # Reduce CPU usage
+                
+                current_time = time.time()
+                if (current_time - audio_recorder.last_voice_activity > SILENCE_DURATION and 
+                    audio_recorder.recording_active):
+                    audio_recorder.recording_active = False
+                    print("Silence detected - stopping recording")
+                    break
         
-        with stream:
-            # Record for specified duration
-            sd.sleep(int(duration * 1000))
-            # Collect all audio data from queue
-            while not audio_queue.empty():
-                audio_data.append(audio_queue.get())
-        
-        if not audio_data:
+        if not audio_recorder.audio_buffer:
             raise ValueError("No audio data recorded")
         
-        # Concatenate all audio chunks
         audio_data = np.concatenate(audio_data, axis=0)
         temp_filename = f"temp_{int(time.time())}.wav"
         
@@ -196,7 +238,7 @@ def conversation_loop(device_id):
             
         except Exception as e:
             print(f"Error in conversation loop: {str(e)}")
-            time.sleep(1)  # Prevent rapid error loops
+            time.sleep(1)
 
 # Flask routes
 @app.route('/')
