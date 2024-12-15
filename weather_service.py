@@ -11,7 +11,6 @@ class WeatherService:
     def get_weather(self, city, forecast_days=0):
         """Get current weather or forecast for a specific city"""
         try:
-            # Get coordinates first (geocoding)
             geo_url = f"http://api.openweathermap.org/geo/1.0/direct?q={city}&limit=1&appid={self.api_key}"
             geo_response = requests.get(geo_url)
             geo_data = geo_response.json()
@@ -70,11 +69,9 @@ class WeatherService:
         """Parse the weather query to extract city and time"""
         text = text.lower()
         
-        # Define common time indicators
         tomorrow_indicators = ['tomorrow', 'next day']
         future_indicators = ['day after', 'next week', 'in \d+ days']
         
-        # Extract city name (this is a simple implementation - could be improved)
         words = text.split()
         city = None
         forecast_days = 0
@@ -103,4 +100,4 @@ class WeatherService:
                 response = f"Weather forecast for {city.title()} on {weather_data['date']}: "
                 response += f"{weather_data['temperature']}°C, {weather_data['description']}"
             return response
-        return weather_data  # Return error message if weather_data is a string
+        return weather_data 

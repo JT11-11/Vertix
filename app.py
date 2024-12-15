@@ -11,10 +11,13 @@ from weather_service import WeatherService
 from transformers import pipeline
 from gtts import gTTS
 from playsound import playsound
+import webbrowser
+from music_service import YouTubeHelper
 
 app = Flask(__name__)
 client = OpenAI(api_key='')
 weather_service = WeatherService()
+youtube_helper = YouTubeHelper()
 
 emotion_classifier = pipeline(
     "text-classification",
@@ -176,11 +179,26 @@ def transcribe_audio(file_path):
         raise
 
 def get_chatgpt_response(text, emotion):
-    """Get response from ChatGPT with emotion awareness"""
+    """Get response from ChatGPT with emotion awareness and YouTube search"""
     print("🤖 Getting AI response...")
     
+    # Handle YouTube search commands
+    text_lower = text.lower()
+    if (('play' in text_lower or 'find' in text_lower or 'search' in text_lower) and 
+        ('song' in text_lower or 'music' in text_lower or 'youtube' in text_lower)):
+        # Extract search query by removing command words
+        query = text_lower
+        for word in ['play', 'find', 'search', 'for', 'song', 'music', 'youtube', 'on', 'please', 'can', 'you']:
+            query = query.replace(word, '')
+        query = query.strip()
+        
+        if query:
+            return youtube_helper.search_and_play(query)
+        else:
+            return "What song would you like me to search for?"
+    
     # Check if it's a weather-related query
-    if any(word in text.lower() for word in ['weather', 'temperature', 'forecast']):
+    if any(word in text_lower for word in ['weather', 'temperature', 'forecast']):
         city, forecast_days = weather_service.parse_weather_query(text)
         if city:
             weather_data = weather_service.get_weather(city, forecast_days)
@@ -196,6 +214,11 @@ def get_chatgpt_response(text, emotion):
     - surprise: acknowledge their reaction and provide clear context
     - disgust: be professional and objective
     - neutral: maintain a balanced, friendly tone
+    
+    The assistant can search for and play music on YouTube. If users ask about music, inform them they can say:
+    - "Play [song name]"
+    - "Search for [song name]"
+    - "Find [song name] on YouTube"
     
     Always ensure your response is helpful and professional while being mindful of their emotional state."""
     
