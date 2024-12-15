@@ -21,7 +21,6 @@ class WeatherService:
             lat = geo_data[0]['lat']
             lon = geo_data[0]['lon']
             
-            # Get current weather or forecast
             if forecast_days == 0:
                 return self._get_current_weather(lat, lon)
             else:
@@ -76,13 +75,11 @@ class WeatherService:
         city = None
         forecast_days = 0
         
-        # Check for time indicators
         if any(indicator in text for indicator in tomorrow_indicators):
             forecast_days = 1
         elif 'day after' in text:
             forecast_days = 2
         
-        # Find city name (simple implementation)
         for word in words:
             if word not in ['weather', 'temperature', 'forecast', 'in', 'at', 'tomorrow', 'today']:
                 city = word
