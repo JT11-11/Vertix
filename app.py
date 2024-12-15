@@ -13,11 +13,13 @@ from gtts import gTTS
 from playsound import playsound
 import webbrowser
 from music_service import YouTubeHelper
+from doc_writer import DocumentHandler
 
 app = Flask(__name__)
-client = OpenAI(api_key='')
+client = OpenAI(api_key='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')
 weather_service = WeatherService()
 youtube_helper = YouTubeHelper()
+document_handler = DocumentHandler(client)  
 
 emotion_classifier = pipeline(
     "text-classification",
@@ -182,11 +184,10 @@ def get_chatgpt_response(text, emotion):
     """Get response from ChatGPT with emotion awareness and YouTube search"""
     print("🤖 Getting AI response...")
     
-    # Handle YouTube search commands
     text_lower = text.lower()
+
     if (('play' in text_lower or 'find' in text_lower or 'search' in text_lower) and 
         ('song' in text_lower or 'music' in text_lower or 'youtube' in text_lower)):
-        # Extract search query by removing command words
         query = text_lower
         for word in ['play', 'find', 'search', 'for', 'song', 'music', 'youtube', 'on', 'please', 'can', 'you']:
             query = query.replace(word, '')
@@ -196,15 +197,19 @@ def get_chatgpt_response(text, emotion):
             return youtube_helper.search_and_play(query)
         else:
             return "What song would you like me to search for?"
+    if any(word in text_lower for word in ['type', 'write', 'create document', 'make a document', 'write me', 'generate']):
+        doc_type, filename, content, generate_content = document_handler.parse_document_command(text)
+        if doc_type == 'word':
+            return document_handler.create_word_document(content, filename, generate_content)
+        else:
+            return document_handler.create_text_file(content, filename, generate_content)
     
-    # Check if it's a weather-related query
     if any(word in text_lower for word in ['weather', 'temperature', 'forecast']):
         city, forecast_days = weather_service.parse_weather_query(text)
         if city:
             weather_data = weather_service.get_weather(city, forecast_days)
             return weather_service.format_weather_response(weather_data, city, forecast_days)
     
-    # Include emotion context in the system message
     system_message = f"""You are a helpful assistant that is aware the user's current emotional state appears to be {emotion}. 
     If the emotion is:
     - joy: maintain an upbeat and encouraging tone
@@ -247,25 +252,17 @@ def conversation_loop(device_id):
     """Main conversation loop with text-to-speech"""
     while True:
         try:
-            # Record audio
             audio_file = record_audio(device_id=device_id)
             
-            # Transcribe audio to text
             transcription = transcribe_audio(audio_file)
             print(f"User said: {transcription}")
             
-            # Detect emotion
             dominant_emotion, emotion_scores = emotion_detector.detect_emotion(transcription)
             print(f"Detected emotion: {dominant_emotion}")
-            
-            # Get emotion-aware response
             response = get_chatgpt_response(transcription, dominant_emotion)
             print(f"AI responds: {response}")
-            
-            # Convert response to speech and play it
             text_to_speech(response)
             
-            # Store in conversation history
             conversation_history.append({
                 "user": transcription,
                 "emotion": dominant_emotion,
@@ -274,7 +271,6 @@ def conversation_loop(device_id):
                 "timestamp": time.strftime("%H:%M:%S")
             })
             
-            # Cleanup temporary audio file
             os.remove(audio_file)
             
         except Exception as e:
@@ -282,7 +278,6 @@ def conversation_loop(device_id):
             time.sleep(1)
     
 
-# Flask routes
 @app.route('/')
 def home():
     devices = list_audio_devices()
