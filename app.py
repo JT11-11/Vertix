@@ -14,12 +14,22 @@ from playsound import playsound
 import webbrowser
 from music_service import YouTubeHelper
 from doc_writer import DocumentHandler
+from code_service import CodeHandler
+from code_explainer import CodeVisionService
+from code_explainer import CodeVisionService
+import os
+
+
+
 
 app = Flask(__name__)
-client = OpenAI(api_key='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')
+client = OpenAI(api_key='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')
+GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')  # Make sure to set this in your environment
 weather_service = WeatherService()
 youtube_helper = YouTubeHelper()
-document_handler = DocumentHandler(client)  
+document_handler = DocumentHandler(client) 
+code_handler=CodeHandler(client)
+code_vision_service = CodeVisionService(GOOGLE_API_KEY)
 
 emotion_classifier = pipeline(
     "text-classification",
@@ -179,13 +189,86 @@ def transcribe_audio(file_path):
     except Exception as e:
         print(f"Error transcribing audio: {str(e)}")
         raise
+# Document handling constants to improve command recognition
+DOCUMENT_KEYWORDS = {
+    'create': ['type', 'write', 'create', 'make', 'generate', 'compose'],
+    'edit': ['edit', 'modify', 'change', 'update', 'revise'],
+    'read': ['read', 'show', 'display', 'open', 'view']
+}
+
+def handle_document_command(text):
+    """
+    Handle document-related commands with improved parsing and response generation.
+    This function centralizes all document operations for better maintenance and reliability.
+    """
+    text_lower = text.lower()
+    
+    # First, check if this is a document-related command
+    command_type = None
+    
+    # Check for creation commands
+    if any(keyword in text_lower for keyword in DOCUMENT_KEYWORDS['create']):
+        doc_type, filename, content, generate_content = document_handler.parse_document_command(text)
+        if doc_type == 'word':
+            return document_handler.create_word_document(content, filename, generate_content)
+        else:
+            return document_handler.create_text_file(content, filename, generate_content)
+    
+    # Check for edit commands
+    elif any(keyword in text_lower for keyword in DOCUMENT_KEYWORDS['edit']):
+        filepath, edit_instructions = document_handler.parse_edit_command(text)
+        if filepath and edit_instructions:
+            result = document_handler.edit_document(filepath, edit_instructions)
+            # Add more context to the response
+            if "successfully edited" in result:
+                return f"I've updated the document '{filepath}' with your requested changes. The edits have been saved."
+            return result
+    
+    # Check for read commands
+    elif any(keyword in text_lower for keyword in DOCUMENT_KEYWORDS['read']):
+        # Extract filename from the command
+        words = text.split()
+        for word in words:
+            if word.endswith('.txt') or word.endswith('.docx'):
+                content = document_handler.read_document(word)
+                if content:
+                    return f"Here's the content of {word}:\n\n{content}"
+                else:
+                    return f"I couldn't find or read the file named {word}. Please make sure it exists and try again."
+        return "Please specify which file you'd like me to read."
+    
+    return None
+
 
 def get_chatgpt_response(text, emotion):
-    """Get response from ChatGPT with emotion awareness and YouTube search"""
+    """
+    Enhanced get_chatgpt_response function with improved document handling integration.
+    Now includes better context awareness and more natural responses.
+    """
     print("🤖 Getting AI response...")
     
     text_lower = text.lower()
 
+    # Code Function
+    code_request = code_handler.parse_code_request(text)
+    if code_request:
+        if code_request["type"] == "generate":
+            result = code_handler.generate_program(code_request["request"])
+            if result["status"] == "success":
+                return f"I've created your program and saved it as {result['filename']}"
+            else:
+                return f"Sorry, there was an error: {result['message']}"
+        elif code_request["type"] == "edit":
+            if code_request["file_path"]:
+                result = code_handler.edit_code(code_request["file_path"], code_request["request"])
+                if result["status"] == "success":
+                    return f"I've updated the code in {code_request['file_path']}"
+                else:
+                    return f"Sorry, there was an error: {result['message']}"
+            else:
+                return "Please specify which file you'd like me to edit."
+    
+    # Handle music-related commands
     if (('play' in text_lower or 'find' in text_lower or 'search' in text_lower) and 
         ('song' in text_lower or 'music' in text_lower or 'youtube' in text_lower)):
         query = text_lower
@@ -197,19 +280,20 @@ def get_chatgpt_response(text, emotion):
             return youtube_helper.search_and_play(query)
         else:
             return "What song would you like me to search for?"
-    if any(word in text_lower for word in ['type', 'write', 'create document', 'make a document', 'write me', 'generate']):
-        doc_type, filename, content, generate_content = document_handler.parse_document_command(text)
-        if doc_type == 'word':
-            return document_handler.create_word_document(content, filename, generate_content)
-        else:
-            return document_handler.create_text_file(content, filename, generate_content)
-    
+
+    # Check for document-related commands first
+    doc_response = handle_document_command(text)
+    if doc_response:
+        return doc_response
+
+    # Handle weather-related queries
     if any(word in text_lower for word in ['weather', 'temperature', 'forecast']):
         city, forecast_days = weather_service.parse_weather_query(text)
         if city:
             weather_data = weather_service.get_weather(city, forecast_days)
             return weather_service.format_weather_response(weather_data, city, forecast_days)
-    
+
+    # Enhanced system message with document capabilities
     system_message = f"""You are a helpful assistant that is aware the user's current emotional state appears to be {emotion}. 
     If the emotion is:
     - joy: maintain an upbeat and encouraging tone
@@ -220,12 +304,18 @@ def get_chatgpt_response(text, emotion):
     - disgust: be professional and objective
     - neutral: maintain a balanced, friendly tone
     
-    The assistant can search for and play music on YouTube. If users ask about music, inform them they can say:
-    - "Play [song name]"
-    - "Search for [song name]"
-    - "Find [song name] on YouTube"
+    You can help users with various tasks:
+    1. Play music:
+       - "Play [song name]"
+       - "Search for [song name]"
+       - "Find [song name] on YouTube"
     
-    Always ensure your response is helpful and professional while being mindful of their emotional state."""
+    2. Work with documents:
+       - Create: "Write a document about [topic]", "Create an essay on [subject]"
+       - Edit: "Edit [filename] to make it more formal", "Update [filename] with new information"
+       - Read: "Show me what's in [filename]", "Read [filename] to me"
+    
+    Always be helpful and professional while being mindful of their emotional state."""
     
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
@@ -235,6 +325,7 @@ def get_chatgpt_response(text, emotion):
         ]
     )
     return response.choices[0].message.content
+
 
 def text_to_speech(text):
     """Convert text to speech and play it"""
@@ -249,7 +340,7 @@ def text_to_speech(text):
 
 
 def conversation_loop(device_id):
-    """Main conversation loop with text-to-speech"""
+    """Main conversation loop with improved document handling"""
     while True:
         try:
             audio_file = record_audio(device_id=device_id)
@@ -259,9 +350,19 @@ def conversation_loop(device_id):
             
             dominant_emotion, emotion_scores = emotion_detector.detect_emotion(transcription)
             print(f"Detected emotion: {dominant_emotion}")
+            
+            # Get AI response with document handling
             response = get_chatgpt_response(transcription, dominant_emotion)
             print(f"AI responds: {response}")
-            text_to_speech(response)
+            
+            # Handle long responses from document operations
+            if len(response) > 300 and any(keyword in transcription.lower() for keyword in ['write', 'create', 'generate', 'edit']):
+                # For document operations, give a shorter speech response
+                speech_text = "I've processed your document request. " + response.split('\n')[0]
+                text_to_speech(speech_text)
+            else:
+                # For normal responses, use the full text
+                text_to_speech(response)
             
             conversation_history.append({
                 "user": transcription,
@@ -274,8 +375,11 @@ def conversation_loop(device_id):
             os.remove(audio_file)
             
         except Exception as e:
-            print(f"Error in conversation loop: {str(e)}")
+            error_msg = f"Error in conversation loop: {str(e)}"
+            print(error_msg)
+            text_to_speech("I encountered an error processing your request. Please try again.")
             time.sleep(1)
+
     
 
 @app.route('/')
@@ -306,6 +410,33 @@ def get_messages():
 def get_emotion_history():
     return jsonify(emotion_detector.get_emotion_history())
 
+@app.route('/code_explainer')
+def code_explainer():
+    """Render the code explainer page"""
+    return render_template('code_asker.html')
+
+
+@app.route('/analyze_code', methods=['POST'])
+def analyze_code():
+    """Handle code image analysis requests using Gemini Vision API"""
+    if 'file' not in request.files:
+        return jsonify({
+            "status": "error",
+            "error": "No file uploaded"
+        })
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({
+            "status": "error",
+            "error": "No file selected"
+        })
+        
+    result = code_vision_service.process_image(file)
+    return jsonify(result)
+
+    
+    
 if __name__ == '__main__':
     print("🚀 Starting voice chat server with emotion detection...")
     print("Available audio input devices:")

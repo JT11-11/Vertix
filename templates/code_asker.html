@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Code Interpreter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prismjs/1.24.1/prism.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prismjs/1.24.1/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    
+    <style>
+        .gradient-text {
+            background: linear-gradient(135deg, #3B82F6, #8B5CF6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .section-card {
+            @apply p-6 rounded-xl shadow-sm mb-6 border-l-4 transition-all duration-300;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { 
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Section styling with semantic colors */
+        .overview {
+            @apply bg-blue-50/80 border-blue-500;
+        }
+
+        .explanation {
+            @apply bg-purple-50/80 border-purple-500;
+        }
+
+        .technical {
+            @apply bg-indigo-50/80 border-indigo-500;
+        }
+
+        .best-practices {
+            @apply bg-green-50/80 border-green-500;
+        }
+
+        .considerations {
+            @apply bg-amber-50/80 border-amber-500;
+        }
+
+        .section-heading {
+            @apply flex items-center gap-3 text-lg font-semibold mb-4;
+        }
+
+        .section-icon {
+            @apply text-2xl;
+        }
+
+        .section-content {
+            @apply text-gray-700 leading-relaxed space-y-4;
+        }
+
+        .code-block {
+            @apply rounded-lg bg-gray-800 p-4 text-sm font-mono text-gray-200 overflow-x-auto;
+        }
+
+        .info-tag {
+            @apply px-3 py-1 rounded-full text-sm font-medium;
+        }
+
+        .upload-zone {
+            @apply border-2 border-dashed border-gray-300 rounded-xl p-8 transition-all duration-300;
+        }
+
+        .upload-zone.active {
+            @apply border-blue-500 bg-blue-50;
+        }
+
+        /* Syntax highlighting customization */
+        pre {
+            @apply rounded-lg p-4 bg-gray-800 text-white overflow-x-auto;
+        }
+
+        code {
+            @apply font-mono text-sm;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+    <nav class="bg-white border-b border-gray-100">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <h1 class="text-3xl font-bold gradient-text">AI Code Interpreter</h1>
+                <div class="flex gap-4">
+                    <a href="#" class="text-gray-600 hover:text-gray-900">Help</a>
+                    <a href="#" class="text-gray-600 hover:text-gray-900">About</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto px-4 py-8 max-w-5xl">
+        <div class="text-center mb-12">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">
+                Understand Any Code in Seconds
+            </h2>
+            <p class="text-gray-600 text-lg mb-6">
+                Upload your code screenshot and get an AI-powered explanation tailored for both beginners and experts
+            </p>
+            <div class="flex justify-center gap-4 flex-wrap">
+                <span class="info-tag bg-blue-100 text-blue-800">🔍 Smart Analysis</span>
+                <span class="info-tag bg-purple-100 text-purple-800">📚 Clear Explanations</span>
+                <span class="info-tag bg-green-100 text-green-800">✨ Best Practices</span>
+                <span class="info-tag bg-amber-100 text-amber-800">💡 Pro Tips</span>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-8">
+            <div id="uploadZone" class="upload-zone">
+                <input id="fileInput" type="file" class="hidden" accept="image/*" />
+                <div class="text-center">
+                    <div class="mb-6">
+                        <svg class="w-16 h-16 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-800 mb-3">Drop your code screenshot here</h3>
+                    <p class="text-gray-500 mb-6">or</p>
+                    <button id="browseButton" class="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-sm">
+                        Choose File
+                    </button>
+                </div>
+            </div>
+
+            <div id="previewSection" class="hidden mt-8">
+                <div class="relative rounded-xl overflow-hidden border border-gray-200">
+                    <img id="imagePreview" class="max-w-full h-auto" alt="Code preview" />
+                    <div class="absolute bottom-4 right-4 flex gap-4">
+                        <button id="resetButton" class="px-4 py-2 bg-white text-gray-700 rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
+                            Reset
+                        </button>
+                        <button id="analyzeButton" class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-sm">
+                            Analyze Code
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="resultsSection" class="hidden space-y-6">
+            <div id="loadingIndicator" class="hidden">
+                <div class="flex flex-col items-center justify-center p-12">
+                    <div class="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
+                    <p class="mt-4 text-lg text-gray-600">Analyzing your code...</p>
+                </div>
+            </div>
+
+            <div id="analysisContent" class="hidden">
+                <div class="flex justify-between items-center mb-8">
+                    <h2 class="text-2xl font-bold text-gray-800">Analysis Results</h2>
+                    <button id="copyButton" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                        Copy to Clipboard
+                    </button>
+                </div>
+                <div id="explanation" class="space-y-6"></div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Initialize UI elements
+        const elements = {
+            fileInput: document.getElementById('fileInput'),
+            uploadZone: document.getElementById('uploadZone'),
+            browseButton: document.getElementById('browseButton'),
+            previewSection: document.getElementById('previewSection'),
+            imagePreview: document.getElementById('imagePreview'),
+            analyzeButton: document.getElementById('analyzeButton'),
+            resetButton: document.getElementById('resetButton'),
+            resultsSection: document.getElementById('resultsSection'),
+            loadingIndicator: document.getElementById('loadingIndicator'),
+            analysisContent: document.getElementById('analysisContent'),
+            explanation: document.getElementById('explanation'),
+            copyButton: document.getElementById('copyButton')
+        };
+
+        // Event Handlers
+        elements.browseButton.addEventListener('click', () => elements.fileInput.click());
+        elements.fileInput.addEventListener('change', handleFileSelect);
+        elements.analyzeButton.addEventListener('click', analyzeCode);
+        elements.resetButton.addEventListener('click', resetInterface);
+        elements.copyButton.addEventListener('click', copyToClipboard);
+
+        // File handling functions
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                displayPreview(file);
+            }
+        }
+
+        function displayPreview(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                elements.imagePreview.src = e.target.result;
+                elements.previewSection.classList.remove('hidden');
+                elements.uploadZone.classList.add('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function analyzeCode() {
+            const file = elements.fileInput.files[0];
+            if (!file) return;
+
+            showLoading(true);
+            
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const response = await axios.post('/analyze_code', formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+
+                if (response.data.status === 'success') {
+                    renderAnalysis(response.data.explanation);
+                } else {
+                    showError(response.data.error);
+                }
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Update the renderAnalysis function to handle the Gemini response format
+        function renderAnalysis(content) {
+            const sections = {
+                'overview': {
+                    icon: '🎯', 
+                    title: 'Overview',
+                    content: extractSectionContent(content, '🎯 Quick Summary')
+                },
+                'explanation': {
+                    icon: '📚', 
+                    title: 'Detailed Explanation',
+                    content: extractSectionContent(content, '💡 Main Features')
+                },
+                'technical': {
+                    icon: '🔧', 
+                    title: 'Technical Details',
+                    content: extractSectionContent(content, '🔧 Technical Details')
+                },
+                'best-practices': {
+                    icon: '✨', 
+                    title: 'Best Practices',
+                    content: extractSectionContent(content, '⚡ Pro Tips')
+                },
+                'considerations': {
+                    icon: '⚠️', 
+                    title: 'Important Considerations',
+                    content: extractSectionContent(content, '⚠️ Important Notes')
+                }
+            };
+
+            let formattedContent = '';
+
+            // Create cards for each section that has content
+            Object.entries(sections).forEach(([key, info]) => {
+                if (info.content) {
+                    formattedContent += createSectionHTML(key, info.icon, info.title, info.content);
+                }
+            });
+
+            // If no sections were found, show entire content as a single "Analysis" card
+            if (!formattedContent) {
+                formattedContent = createSectionHTML('overview', '🎯', 'Analysis', content);
+            }
+
+            elements.explanation.innerHTML = formattedContent;
+
+            // Apply syntax highlighting
+            formatCodeBlocks();
+
+            // Show analysis content
+            elements.analysisContent.classList.remove('hidden');
+            elements.loadingIndicator.classList.add('hidden');
+        }
+
+        function createSectionHTML(className, icon, title, content) {
+            return `
+                <div class="section-card bg-white border border-gray-200 rounded-lg p-6 shadow-sm mb-6">
+                    <div class="flex items-center mb-4">
+                        <div class="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-blue-100 rounded-full text-2xl">
+                            ${icon}
+                        </div>
+                        <h3 class="ml-3 text-xl font-semibold text-gray-800">${title}</h3>
+                    </div>
+                    <div class="space-y-4 text-gray-700 leading-relaxed">
+                        ${formatContent(content)}
+                    </div>
+                </div>
+            `;
+        }
+
+        function formatContent(content) {
+            // Convert triple backticks to code blocks
+            let formatted = content.replace(/```(\w+)?\n([\s\S]*?)```/g, (_, lang, code) => {
+                return `<pre><code class="language-${lang || 'plaintext'}">${escapeHtml(code.trim())}</code></pre>`;
+            });
+
+            // Inline code using backticks
+            formatted = formatted.replace(/`([^`]+)`/g, '<code class="inline-code bg-gray-100 px-1 py-0.5 rounded">$1</code>');
+
+            // Convert double newlines to paragraphs
+            formatted = '<p>' + formatted
+                .replace(/\n\s*\n/g, '</p><p>')
+                + '</p>';
+
+            // Convert single newlines to <br>
+            formatted = formatted.replace(/\n/g, '<br>');
+
+            return formatted;
+        }
+
+
+        // Update the extractSectionContent function to be more flexible
+        function extractSectionContent(content, sectionTitle) {
+            // Handle both emoji and text-based section titles
+            const titleVariations = [
+                sectionTitle,
+                sectionTitle.replace(/^[^a-zA-Z]+/, '').trim() // Version without emoji
+            ];
+            
+            for (const title of titleVariations) {
+                const regex = new RegExp(
+                    `${title}:?\\s*([\\s\\S]*?)(?=(?:🎯|💡|🔧|⚡|⚠️|Overview:|Main Features:|Technical Details:|Pro Tips:|Important Notes:|$))`,
+                    'i'
+                );
+                const match = content.match(regex);
+                if (match && match[1]) {
+                    return match[1].trim();
+                }
+            }
+            return null;
+        }
+
+        // Add a debug function to help diagnose rendering issues
+        function debugContent(content) {
+            console.log('Raw content:', content);
+            console.log('Sections found:', Object.keys(
+                ['🎯', '💡', '🔧', '⚡', '⚠️'].reduce((acc, emoji) => {
+                    const section = extractSectionContent(content, emoji);
+                    if (section) acc[emoji] = section;
+                    return acc;
+                }, {})
+            ));
+        }
+
+        // Update the analyzeCode function to include better error handling and debugging
+        async function analyzeCode() {
+            const file = elements.fileInput.files[0];
+            if (!file) return;
+
+            showLoading(true);
+            
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const response = await axios.post('/analyze_code', formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+
+                if (response.data.status === 'success') {
+                    // Add debug logging
+                    console.log('API Response:', response.data);
+                    
+                    // Check if we have content to render
+                    if (response.data.explanation) {
+                        renderAnalysis(response.data.explanation);
+                    } else {
+                        showError('No analysis content received from the API');
+                    }
+                } else {
+                    showError(response.data.error || 'Analysis failed');
+                }
+            } catch (error) {
+                console.error('Analysis error:', error);
+                showError(error.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function extractSectionContent(content, title) {
+            const regex = new RegExp(`${title}:\\s*([\\s\\S]*?)(?=(?:Overview:|Detailed Explanation:|Technical Details:|Best Practices:|Important Considerations:|$))`, 'i');
+            const match = content.match(regex);
+            return match ? match[1].trim() : null;
+        }
+
+        function createSectionHTML(className, icon, title, content) {
+            return `
+                <div class="section-card ${className}">
+                    <div class="section-heading">
+                        <span class="section-icon">${icon}</span>
+                        <span>${title}</span>
+                    </div>
+                    <div class="section-content">
+                        ${formatContent(content)}
+                    </div>
+                </div>
+            `;
+        }
+
+        function formatContent(content) {
+            return content
+                .replace(/```(\w+)?\n([\s\S]*?)```/g, (_, lang, code) => 
+                    `<pre><code class="language-${lang || 'plaintext'}">${escapeHtml(code.trim())}</code></pre>`)
+                .replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>')
+                .replace(/\n\n/g, '</p><p>')
+                .replace(/\n/g, '<br>');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatCodeBlocks() {
+            document.querySelectorAll('pre code').forEach(block => {
+                Prism.highlightElement(block);
+            });
+        }
+
+        function showLoading(show) {
+            elements.loadingIndicator.classList.toggle('hidden', !show);
+            elements.analysisContent.classList.toggle('hidden', show);
+            elements.resultsSection.classList.remove('hidden');
+        }
+
+        function showError(message) {
+            elements.explanation.innerHTML = `
+                <div class="section-card bg-red-50 border-red-500">
+                    <div class="section-heading">
+                        <span class="section-icon">❌</span>
+                        <span>Error</span>
+                    </div>
+                    <div class="section-content text-red-700">${message}</div>
+                </div>
+            `;
+        }
+
+        function resetInterface() {
+            elements.fileInput.value = '';
+            elements.imagePreview.src = '';
+            elements.previewSection.classList.add('hidden');
+            elements.uploadZone.classList.remove('hidden');
+            elements.resultsSection.classList.add('hidden');
+            elements.explanation.innerHTML = '';
+        }
+
+        function copyToClipboard() {
+            const content = elements.explanation.innerText;
+            navigator.clipboard.writeText(content).then(() => {
+                elements.copyButton.textContent = 'Copied!';
+                setTimeout(() => {
+                    elements.copyButton.textContent = 'Copy to Clipboard';
+                }, 2000);
+            });
+        }
+
+        // Drag and drop handling
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(event => {
+            elements.uploadZone.addEventListener(event, preventDefault);
+            document.body.addEventListener(event, preventDefault);
+        });
+
+        function preventDefault(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(event => {
+            elements.uploadZone.addEventListener(event, () => {
+                elements.uploadZone.classList.add('active');
+            });
+        });
+
+       ['dragleave', 'drop'].forEach(event => {
+            elements.uploadZone.addEventListener(event, () => {
+                elements.uploadZone.classList.remove('active');
+            });
+        });
+
+        elements.uploadZone.addEventListener('drop', function(e) {
+            // Extract the dropped file and display it
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                elements.fileInput.files = e.dataTransfer.files;
+                displayPreview(file);
+            } else {
+                // Provide user feedback for invalid file types
+                showError('Please upload an image file (PNG, JPG, or JPEG)');
+            }
+        });
+
+        // Additional helper functions to improve user experience
+        function showToast(message, type = 'info') {
+            // Create a toast notification element
+            const toast = document.createElement('div');
+            toast.className = `fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg transition-all duration-300 transform translate-y-0 ${
+                type === 'error' ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'
+            }`;
+            toast.textContent = message;
+
+            // Add to document and handle removal
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.add('translate-y-full', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Add file size validation
+        function validateFile(file) {
+            const maxSize = 5 * 1024 * 1024; // 5MB limit
+            if (file.size > maxSize) {
+                showToast('File size exceeds 5MB limit', 'error');
+                return false;
+            }
+            return true;
+        }
+
+        // Enhance handleFileSelect with validation
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!file.type.startsWith('image/')) {
+                showToast('Please select an image file', 'error');
+                return;
+            }
+
+            if (!validateFile(file)) {
+                elements.fileInput.value = '';
+                return;
+            }
+
+            displayPreview(file);
+        }
+
+        // Add keyboard accessibility
+        elements.uploadZone.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                elements.fileInput.click();
+            }
+        });
+
+        // Initialize the interface
+        function initializeInterface() {
+            // Make upload zone focusable
+            elements.uploadZone.setAttribute('tabindex', '0');
+            elements.uploadZone.setAttribute('role', 'button');
+            elements.uploadZone.setAttribute('aria-label', 'Upload code image');
+
+            // Add loading state handling
+            window.addEventListener('beforeunload', () => {
+                if (elements.loadingIndicator.classList.contains('hidden')) return;
+                return 'Analysis in progress. Are you sure you want to leave?';
+            });
+        }
+
+        // Call initialization
+        initializeInterface();
+    </script>
+</body>
+</html>
