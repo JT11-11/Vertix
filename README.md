@@ -3,6 +3,7 @@
 **Hackathon Submission:** LLM Agents Hackathon hosted by Berkeley's Center for Responsible and Decentralized Intelligence 🌍
 
 ![Vertix Logo](https://github.com/JT11-11/Vertix/blob/f3d1bae1366727955568dfef0a9e7e239241514c/image.jpg)
+Credits: Dall-e
 
 ## Track: Applications Track 🎯
 
