@@ -89,20 +89,203 @@
         code {
             @apply font-mono text-sm;
         }
+
+        .carousel-container {
+    position: relative;
+    overflow: hidden;
+    margin: 2rem 0;
+    background: white;
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.carousel-track {
+    display: flex;
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    min-height: 400px;
+}
+
+.carousel-slide {
+    flex: 0 0 100%;
+    padding: 2rem;
+}
+
+.carousel-nav {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    transform: translateY(-50%);
+    z-index: 10;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 1rem;
+    pointer-events: none;
+}
+
+.nav-button {
+    background: white;
+    border: 1px solid rgb(229, 231, 235);
+    border-radius: 50%;
+    width: 3.5rem;
+    height: 3.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    pointer-events: auto;
+    color: rgb(55, 65, 81);
+}
+
+.nav-button:hover {
+    background: rgb(249, 250, 251);
+    transform: scale(1.05);
+    box-shadow: 0 6px 8px -2px rgba(0, 0, 0, 0.1);
+}
+
+.nav-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.nav-button svg {
+    width: 1.5rem;
+    height: 1.5rem;
+    transition: transform 0.2s ease;
+}
+
+.nav-button:hover:not(:disabled) svg {
+    transform: scale(1.1);
+}
+
+.progress-dots {
+    position: absolute;
+    bottom: 1.5rem;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+    z-index: 20;
+}
+
+.progress-dot {
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 50%;
+    background: rgb(229, 231, 235);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.progress-dot:hover {
+    transform: scale(1.2);
+    background: rgb(199, 210, 254);
+}
+
+.progress-dot.active {
+    background: rgb(59, 130, 246);
+    transform: scale(1.2);
+}
+
+.card-content {
+    opacity: 0;
+    transform: translateY(1rem);
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    transition-delay: 0.1s;
+}
+
+.card-content.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.extra-actions {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    display: flex;
+    gap: 0.5rem;
+    z-index: 30;
+}
+
+.action-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: white;
+    border: 1px solid rgb(229, 231, 235);
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    color: rgb(55, 65, 81);
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.action-button:hover {
+    background: rgb(249, 250, 251);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.action-button svg {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+@media (max-width: 640px) {
+    .carousel-slide {
+        padding: 1.5rem;
+    }
+
+    .nav-button {
+        width: 3rem;
+        height: 3rem;
+    }
+
+    .extra-actions {
+        top: auto;
+        bottom: 1rem;
+        right: 1rem;
+    }
+
+    .progress-dots {
+        bottom: 4rem;
+    }
+}
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen">
     <nav class="bg-white border-b border-gray-100">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16 items-center">
-                <h1 class="text-3xl font-bold gradient-text">AI Code Interpreter</h1>
-                <div class="flex gap-4">
-                    <a href="#" class="text-gray-600 hover:text-gray-900">Help</a>
-                    <a href="#" class="text-gray-600 hover:text-gray-900">About</a>
+                <h1 class="text-2xl font-bold text-gray-800">AI Assistant Hub</h1>
+                
+                <div class="flex items-center gap-4">
+                    <a href="/" class="inline-flex items-center px-4 py-2 bg-gray-200 text-black rounded-lg hover:bg-gray-300 transition-colors shadow-sm">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                        </svg>
+                        Voice Assistant
+                    </a>
+                    <a href="/code_explainer" class="inline-flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                        </svg>
+                        Code Explainer
+                    </a>
                 </div>
             </div>
         </div>
     </nav>
+    
 
     <main class="container mx-auto px-4 py-8 max-w-5xl">
         <div class="text-center mb-12">
@@ -160,20 +343,55 @@
                 </div>
             </div>
 
-            <div id="analysisContent" class="hidden">
-                <div class="flex justify-between items-center mb-8">
-                    <h2 class="text-2xl font-bold text-gray-800">Analysis Results</h2>
-                    <button id="copyButton" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                        Copy to Clipboard
+        <div id="analysisContent" class="hidden">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-2xl font-bold text-gray-800">Analysis Results</h2>
+                <button id="copyButton" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                    Copy to Clipboard
+                </button>
+            </div>
+            
+            <div class="carousel-container">
+                <div class="carousel-nav">
+                    <button id="prevSlide" class="nav-button" disabled>
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                        </svg>
+                    </button>
+                    <button id="nextSlide" class="nav-button">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
                     </button>
                 </div>
-                <div id="explanation" class="space-y-6"></div>
+            
+                <div class="extra-actions">
+                    <button class="action-button">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                        </svg>
+                        Copy
+                    </button>
+                    <button class="action-button">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+                        </svg>
+                        Expand
+                    </button>
+                </div>
+                
+                <div id="carouselTrack" class="carousel-track">
+                </div>
+                
+                <div id="progressDots" class="progress-dots">
+                </div>
             </div>
+            
+</div>
         </div>
     </main>
 
     <script>
-        // Initialize UI elements
         const elements = {
             fileInput: document.getElementById('fileInput'),
             uploadZone: document.getElementById('uploadZone'),
@@ -185,18 +403,15 @@
             resultsSection: document.getElementById('resultsSection'),
             loadingIndicator: document.getElementById('loadingIndicator'),
             analysisContent: document.getElementById('analysisContent'),
-            explanation: document.getElementById('explanation'),
             copyButton: document.getElementById('copyButton')
         };
 
-        // Event Handlers
         elements.browseButton.addEventListener('click', () => elements.fileInput.click());
         elements.fileInput.addEventListener('change', handleFileSelect);
         elements.analyzeButton.addEventListener('click', analyzeCode);
         elements.resetButton.addEventListener('click', resetInterface);
         elements.copyButton.addEventListener('click', copyToClipboard);
 
-        // File handling functions
         function handleFileSelect(event) {
             const file = event.target.files[0];
             if (file && file.type.startsWith('image/')) {
@@ -272,24 +487,19 @@
 
             let formattedContent = '';
 
-            // Create cards for each section that has content
             Object.entries(sections).forEach(([key, info]) => {
                 if (info.content) {
                     formattedContent += createSectionHTML(key, info.icon, info.title, info.content);
                 }
             });
 
-            // If no sections were found, show entire content as a single "Analysis" card
             if (!formattedContent) {
                 formattedContent = createSectionHTML('overview', '🎯', 'Analysis', content);
             }
 
             elements.explanation.innerHTML = formattedContent;
-
-            // Apply syntax highlighting
             formatCodeBlocks();
 
-            // Show analysis content
             elements.analysisContent.classList.remove('hidden');
             elements.loadingIndicator.classList.add('hidden');
         }
@@ -311,32 +521,23 @@
         }
 
         function formatContent(content) {
-            // Convert triple backticks to code blocks
             let formatted = content.replace(/```(\w+)?\n([\s\S]*?)```/g, (_, lang, code) => {
                 return `<pre><code class="language-${lang || 'plaintext'}">${escapeHtml(code.trim())}</code></pre>`;
             });
-
-            // Inline code using backticks
             formatted = formatted.replace(/`([^`]+)`/g, '<code class="inline-code bg-gray-100 px-1 py-0.5 rounded">$1</code>');
-
-            // Convert double newlines to paragraphs
             formatted = '<p>' + formatted
                 .replace(/\n\s*\n/g, '</p><p>')
                 + '</p>';
 
-            // Convert single newlines to <br>
             formatted = formatted.replace(/\n/g, '<br>');
-
             return formatted;
         }
 
 
-        // Update the extractSectionContent function to be more flexible
         function extractSectionContent(content, sectionTitle) {
-            // Handle both emoji and text-based section titles
             const titleVariations = [
                 sectionTitle,
-                sectionTitle.replace(/^[^a-zA-Z]+/, '').trim() // Version without emoji
+                sectionTitle.replace(/^[^a-zA-Z]+/, '').trim() 
             ];
             
             for (const title of titleVariations) {
@@ -351,8 +552,6 @@
             }
             return null;
         }
-
-        // Add a debug function to help diagnose rendering issues
         function debugContent(content) {
             console.log('Raw content:', content);
             console.log('Sections found:', Object.keys(
@@ -364,7 +563,6 @@
             ));
         }
 
-        // Update the analyzeCode function to include better error handling and debugging
         async function analyzeCode() {
             const file = elements.fileInput.files[0];
             if (!file) return;
@@ -379,13 +577,11 @@
                     headers: { 'Content-Type': 'multipart/form-data' }
                 });
 
+                console.log('API Response:', response.data); 
+                
                 if (response.data.status === 'success') {
-                    // Add debug logging
-                    console.log('API Response:', response.data);
-                    
-                    // Check if we have content to render
-                    if (response.data.explanation) {
-                        renderAnalysis(response.data.explanation);
+                    if (response.data.sections) {
+                        renderAnalysis(response.data.sections);
                     } else {
                         showError('No analysis content received from the API');
                     }
@@ -399,6 +595,7 @@
                 showLoading(false);
             }
         }
+
 
         function extractSectionContent(content, title) {
             const regex = new RegExp(`${title}:\\s*([\\s\\S]*?)(?=(?:Overview:|Detailed Explanation:|Technical Details:|Best Practices:|Important Considerations:|$))`, 'i');
@@ -448,15 +645,27 @@
         }
 
         function showError(message) {
-            elements.explanation.innerHTML = `
-                <div class="section-card bg-red-50 border-red-500">
-                    <div class="section-heading">
-                        <span class="section-icon">❌</span>
-                        <span>Error</span>
+            const carouselTrack = document.getElementById('carouselTrack');
+            carouselTrack.innerHTML = `
+                <div class="carousel-slide">
+                    <div class="bg-white rounded-xl shadow-lg p-8 mx-2 h-full border-l-4 border-red-500">
+                        <div class="flex items-center gap-3 mb-6">
+                            <span class="text-3xl">❌</span>
+                            <h3 class="text-2xl font-semibold text-gray-900">Error</h3>
+                        </div>
+                        <div class="text-red-600">
+                            ${message}
+                        </div>
                     </div>
-                    <div class="section-content text-red-700">${message}</div>
                 </div>
             `;
+            
+            elements.loadingIndicator.classList.add('hidden');
+            elements.analysisContent.classList.remove('hidden');
+            elements.resultsSection.classList.remove('hidden');
+            
+            const progressDots = document.getElementById('progressDots');
+            progressDots.innerHTML = '';
         }
 
         function resetInterface() {
@@ -465,8 +674,14 @@
             elements.previewSection.classList.add('hidden');
             elements.uploadZone.classList.remove('hidden');
             elements.resultsSection.classList.add('hidden');
-            elements.explanation.innerHTML = '';
+            
+            const carouselTrack = document.getElementById('carouselTrack');
+            const progressDots = document.getElementById('progressDots');
+            if (carouselTrack) carouselTrack.innerHTML = '';
+            if (progressDots) progressDots.innerHTML = '';
         }
+
+        let currentSlide = 0;
 
         function copyToClipboard() {
             const content = elements.explanation.innerText;
@@ -477,8 +692,6 @@
                 }, 2000);
             });
         }
-
-        // Drag and drop handling
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(event => {
             elements.uploadZone.addEventListener(event, preventDefault);
             document.body.addEventListener(event, preventDefault);
@@ -502,27 +715,21 @@
         });
 
         elements.uploadZone.addEventListener('drop', function(e) {
-            // Extract the dropped file and display it
             const file = e.dataTransfer.files[0];
             if (file && file.type.startsWith('image/')) {
                 elements.fileInput.files = e.dataTransfer.files;
                 displayPreview(file);
             } else {
-                // Provide user feedback for invalid file types
                 showError('Please upload an image file (PNG, JPG, or JPEG)');
             }
         });
 
-        // Additional helper functions to improve user experience
         function showToast(message, type = 'info') {
-            // Create a toast notification element
             const toast = document.createElement('div');
             toast.className = `fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg transition-all duration-300 transform translate-y-0 ${
                 type === 'error' ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'
             }`;
             toast.textContent = message;
-
-            // Add to document and handle removal
             document.body.appendChild(toast);
             setTimeout(() => {
                 toast.classList.add('translate-y-full', 'opacity-0');
@@ -530,9 +737,8 @@
             }, 3000);
         }
 
-        // Add file size validation
         function validateFile(file) {
-            const maxSize = 5 * 1024 * 1024; // 5MB limit
+            const maxSize = 5 * 1024 * 1024; 
             if (file.size > maxSize) {
                 showToast('File size exceeds 5MB limit', 'error');
                 return false;
@@ -540,7 +746,6 @@
             return true;
         }
 
-        // Enhance handleFileSelect with validation
         function handleFileSelect(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -558,7 +763,6 @@
             displayPreview(file);
         }
 
-        // Add keyboard accessibility
         elements.uploadZone.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
@@ -566,21 +770,96 @@
             }
         });
 
-        // Initialize the interface
         function initializeInterface() {
-            // Make upload zone focusable
             elements.uploadZone.setAttribute('tabindex', '0');
             elements.uploadZone.setAttribute('role', 'button');
             elements.uploadZone.setAttribute('aria-label', 'Upload code image');
-
-            // Add loading state handling
             window.addEventListener('beforeunload', () => {
                 if (elements.loadingIndicator.classList.contains('hidden')) return;
                 return 'Analysis in progress. Are you sure you want to leave?';
             });
         }
+        function renderAnalysis(sections) {
+            const carouselTrack = document.getElementById('carouselTrack');
+            const progressDots = document.getElementById('progressDots');
+            carouselTrack.innerHTML = '';
+            progressDots.innerHTML = '';
+            
+            const sortedSections = Object.entries(sections).sort((a, b) => a[1].order - b[1].order);
+            
+            sortedSections.forEach(([title, data], index) => {
+                const slide = document.createElement('div');
+                slide.className = 'carousel-slide';
+                slide.innerHTML = `
+                    <div class="bg-white rounded-xl shadow-lg p-8 mx-2 h-full">
+                        <div class="flex items-center gap-3 mb-6">
+                            <span class="text-3xl">${data.icon}</span>
+                            <h3 class="text-2xl font-semibold text-gray-900">${title}</h3>
+                        </div>
+                        <div class="card-content prose max-w-none">
+                            ${formatContent(data.content)}
+                        </div>
+                    </div>
+                `;
+                carouselTrack.appendChild(slide);
+                
+                // Create progress dot
+                const dot = document.createElement('button');
+                dot.className = `progress-dot ${index === 0 ? 'active' : ''}`;
+                dot.addEventListener('click', () => goToSlide(index));
+                progressDots.appendChild(dot);
+            });
+            
+            // Show first slide
+            showSlide(0);
+            currentSlide = 0;
+            updateNavButtons();
+            
+            // Show the analysis content
+            elements.analysisContent.classList.remove('hidden');
+            elements.loadingIndicator.classList.add('hidden');
+        }
 
-        // Call initialization
+
+        function showSlide(index) {
+            const track = document.getElementById('carouselTrack');
+            track.style.transform = `translateX(-${index * 100}%)`;
+            
+            // Update progress dots
+            const dots = document.querySelectorAll('.progress-dot');
+            dots.forEach((dot, i) => {
+                dot.classList.toggle('active', i === index);
+            });
+            
+            const contents = document.querySelectorAll('.card-content');
+            contents.forEach((content, i) => {
+                content.classList.toggle('visible', i === index);
+            });
+        }
+
+        function updateNavButtons() {
+            const prevButton = document.getElementById('prevSlide');
+            const nextButton = document.getElementById('nextSlide');
+            const totalSlides = document.querySelectorAll('.carousel-slide').length;
+            
+            prevButton.disabled = currentSlide === 0;
+            nextButton.disabled = currentSlide === totalSlides - 1;
+        }
+
+        function goToSlide(index) {
+            currentSlide = index;
+            showSlide(index);
+            updateNavButtons();
+        }
+
+        document.getElementById('prevSlide').addEventListener('click', () => {
+            if (currentSlide > 0) goToSlide(currentSlide - 1);
+        });
+
+        document.getElementById('nextSlide').addEventListener('click', () => {
+            const totalSlides = document.querySelectorAll('.carousel-slide').length;
+            if (currentSlide < totalSlides - 1) goToSlide(currentSlide + 1);
+        });
         initializeInterface();
     </script>
 </body>

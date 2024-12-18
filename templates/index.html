@@ -17,10 +17,16 @@
                     </div>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <button id="voiceAssistantBtn" class="bg-blue-500 text-white px-6 py-2 rounded-lg font-semibold transition-all duration-300 hover:bg-blue-600 active">
+                    <button id="voiceAssistantBtn" class="bg-blue-500 flex text-white px-6 py-2 rounded-lg font-semibold transition-all duration-300 hover:bg-blue-600 active">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                        </svg>
                         Voice Assistant
                     </button>
-                    <button id="codeExplainerBtn" class="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg font-semibold transition-all duration-300 hover:bg-gray-300">
+                    <button id="codeExplainerBtn" class="bg-gray-200 flex text-gray-700 px-6 py-2 rounded-lg font-semibold transition-all duration-300 hover:bg-gray-300">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                        </svg>
                         Code Explainer
                     </button>
                 </div>
@@ -61,8 +67,6 @@
                         {% endfor %}
                     </select>
                 </div>
-
-                <!-- Control Buttons -->
                 <div class="space-y-4">
                     <button id="startButton" class="w-full bg-green-600 hover:bg-green-700 text-white text-2xl font-bold py-6 px-8 rounded-lg shadow-lg flex items-center justify-center gap-3">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -173,22 +177,20 @@
             $('#controlPanel').addClass('h-20');
         }
 
-        // Update chat every 2 seconds
         setInterval(updateChat, 2000);
 
         $('#voiceAssistantBtn').click(function() {
-            window.location.href = '/';  // Navigate to voice assistant page
+            window.location.href = '/'; 
             $(this).addClass('bg-blue-500 text-white').removeClass('bg-gray-200 text-gray-700');
             $('#codeExplainerBtn').removeClass('bg-blue-500 text-white').addClass('bg-gray-200 text-gray-700');
         });
 
         $('#codeExplainerBtn').click(function() {
-            window.location.href = '/code_explainer';  // Navigate to code explainer page
+            window.location.href = '/code_explainer';  
             $(this).addClass('bg-blue-500 text-white').removeClass('bg-gray-200 text-gray-700');
             $('#voiceAssistantBtn').removeClass('bg-blue-500 text-white').addClass('bg-gray-200 text-gray-700');
         });
 
-        // Update active button based on current page
         $(document).ready(function() {
             const currentPath = window.location.pathname;
             if (currentPath === '/code_explainer') {

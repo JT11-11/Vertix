@@ -16,14 +16,13 @@ from music_service import YouTubeHelper
 from doc_writer import DocumentHandler
 from code_service import CodeHandler
 from code_explainer import CodeVisionService
-from code_explainer import CodeVisionService
 import os
 
 
 
 
 app = Flask(__name__)
-client = OpenAI(api_key='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')
+client = os.getenv('OPENAI_API_KEY')
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')  # Make sure to set this in your environment
 weather_service = WeatherService()
 youtube_helper = YouTubeHelper()
@@ -418,22 +417,31 @@ def code_explainer():
 
 @app.route('/analyze_code', methods=['POST'])
 def analyze_code():
-    """Handle code image analysis requests using Gemini Vision API"""
     if 'file' not in request.files:
-        return jsonify({
-            "status": "error",
-            "error": "No file uploaded"
-        })
-    
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({
-            "status": "error",
-            "error": "No file selected"
-        })
+        return jsonify({'error': 'No file uploaded'})
         
-    result = code_vision_service.process_image(file)
-    return jsonify(result)
+    file = request.files['file']
+    
+    try:
+        result = code_vision_service.process_image(file)
+        
+        if result['status'] == 'success':
+            formatted_sections = code_vision_service.format_code_analysis(result['explanation'])
+            return jsonify({
+                'status': 'success',
+                'sections': formatted_sections
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'error': result.get('error', 'Analysis failed')
+            })
+            
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'error': str(e)
+        })
 
     
     

@@ -18,17 +18,12 @@ class CodeVisionService:
         Args:
             api_key: Your Google API key for accessing Gemini
         """
-        # Configure the Gemini API
         genai.configure(api_key=api_key)
         
-        # Initialize the Gemini Vision model
         self.model = genai.GenerativeModel('gemini-1.5-flash')
         
-        # Configure service settings
         self.allowed_extensions = {'png', 'jpg', 'jpeg'}
         self.upload_folder = 'uploads'
-        
-        # Create uploads directory if it doesn't exist
         if not os.path.exists(self.upload_folder):
             os.makedirs(self.upload_folder)
 
@@ -94,33 +89,60 @@ class CodeVisionService:
                 "error": error_message
             }
 
-    def _format_explanation(self, explanation: str) -> str:
-        """Format the explanation for better readability and structure."""
-        sections = explanation.split('\n\n')
-        formatted_sections = []
-        
-        section_icons = {
-            'quick summary': '🎯',
-            'main features': '💡',
-            'technical details': '🔧',
-            'pro tips': '⚡',
-            'important notes': '⚠️'
+    def _format_explanation(self, text: str) -> str:
+        """Format the raw text response from Gemini."""
+        if not text:
+            return ""
+        return text.strip()
+
+    def format_code_analysis(self, text: str) -> Dict[str, Any]:
+        """Format the analysis text into structured sections."""
+        sections = {
+            "Quick Summary": {
+                "icon": "🎯",
+                "content": "",
+                "order": 1
+            },
+            "Main Features": {
+                "icon": "💡",
+                "content": "",
+                "order": 2
+            },
+            "Technical Details": {
+                "icon": "🔧",
+                "content": "",
+                "order": 3
+            },
+            "Pro Tips": {
+                "icon": "⚡",
+                "content": "",
+                "order": 4
+            },
+            "Important Notes": {
+                "icon": "⚠️",
+                "content": "",
+                "order": 5
+            }
         }
         
-        for section in sections:
-            section = section.strip()
-            lower_section = section.lower()
-            
-            for marker, icon in section_icons.items():
-                if marker in lower_section:
-                    if not section.startswith(icon):
-                        section = f"{icon} {section}"
-                    section = f"<div class='section {marker.replace(' ', '-')}'>{section}</div>"
+        text = text.replace("***", "").replace("**", "")
+        current_section = None
+        
+        for line in text.split('\n'):
+            line = line.strip()
+            for section in sections:
+                if section in line:
+                    current_section = section
                     break
             
-            formatted_sections.append(section)
+            if current_section and line and not any(section in line for section in sections):
+                sections[current_section]["content"] += line + "\n"
         
-        return '\n\n'.join(formatted_sections)
+        for section in sections:
+            sections[section]["content"] = sections[section]["content"].strip()
+        
+        return {k: v for k, v in sections.items() if v["content"]}
+    
     def process_image(self, file) -> Dict[str, Any]:
         """
         Process an uploaded image file and return the code analysis.
@@ -142,11 +164,9 @@ class CodeVisionService:
             }
             
         try:
-            # Save the uploaded file
             filename = os.path.join(self.upload_folder, file.filename)
             file.save(filename)
             
-            # Analyze the image
             result = self.analyze_code_image(filename)
             
             return result
@@ -159,7 +179,6 @@ class CodeVisionService:
             }
             
         finally:
-            # Clean up the temporary file
             try:
                 if 'filename' in locals() and os.path.exists(filename):
                     os.remove(filename)
