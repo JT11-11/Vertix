@@ -22,8 +22,6 @@ class CodeHandler:
         self.client = openai_client
         self.current_file = None
         self.current_code = None
-        
-        # Define natural language patterns for code requests
         self.code_phrases = {
             'generate': [
                 'write a python program',
@@ -72,7 +70,6 @@ class CodeHandler:
         Returns:
             A user-friendly filename that describes the program's purpose
         """
-        # Remove common words that don't add meaning
         common_words = {
             'a', 'the', 'to', 'in', 'on', 'at', 'and', 'or', 'for', 'with',
             'that', 'this', 'program', 'python', 'code', 'script', 'write',
@@ -80,15 +77,12 @@ class CodeHandler:
             'would', 'could', 'can', 'help'
         }
         
-        # Extract meaningful words
         words = request.lower().split()
         meaningful_words = [word for word in words if word not in common_words]
         
-        # Create base filename from first few meaningful words
         base_name = '_'.join(meaningful_words[:3])
         base_name = re.sub(r'[^\w\s-]', '', base_name)
         
-        # Add number suffix if file exists
         counter = 1
         filename = f"{base_name}.py"
         while os.path.exists(filename):
@@ -144,7 +138,6 @@ class CodeHandler:
             Dictionary containing status, filename, execution results, and messages
         """
         try:
-            # Prepare detailed system message for code generation
             system_message = """You are an expert Python programmer. Generate clean, well-documented 
             Python code that solves the user's request. Include:
             1. Clear docstrings explaining the program's purpose
@@ -153,7 +146,6 @@ class CodeHandler:
             4. Input validation when needed
             Return only the code without any explanations outside the code."""
             
-            # Generate the code
             response = self.client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
@@ -162,7 +154,6 @@ class CodeHandler:
                 ]
             )
             
-            # Clean and prepare the code
             code = response.choices[0].message.content
             code = code.replace('```python', '').replace('```', '').strip()
             
@@ -215,14 +206,12 @@ class CodeHandler:
             if not os.path.exists(abs_file_path):
                 return {"status": "error", "message": f"File not found: {abs_file_path}"}
             
-            # Read current code
             try:
                 with open(abs_file_path, 'r', encoding='utf-8') as f:
                     current_code = f.read()
             except Exception as e:
                 return {"status": "error", "message": f"Error reading file: {str(e)}"}
             
-            # Prepare system message for precise editing
             system_message = f"""You are an expert Python programmer making specific code modifications.
             Instructions:
             1. Only modify the parts of the code that need to change based on the request
@@ -232,8 +221,6 @@ class CodeHandler:
             
             Current code:
             {current_code}"""
-            
-            # Get modifications from AI
             response = self.client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
@@ -244,20 +231,12 @@ class CodeHandler:
             
             modified_code = response.choices[0].message.content
             modified_code = modified_code.replace('```python', '').replace('```', '').strip()
-            
-            # Create backup
             backup_path = f"{abs_file_path}.backup"
             with open(backup_path, 'w', encoding='utf-8') as f:
                 f.write(current_code)
-            
-            # Update file
             with open(abs_file_path, 'w', encoding='utf-8') as f:
                 f.write(modified_code)
-            
-            # Execute modified code
             execution_result = self.execute_program(abs_file_path)
-            
-            # Generate diff for review
             diff = self.generate_compact_diff(current_code, modified_code)
             
             return {
@@ -314,21 +293,14 @@ class CodeHandler:
             Dictionary containing request type and details, or None if not a code request
         """
         text_lower = text.lower()
-        
-        # Check for generation requests with improved context awareness
         for phrase in self.code_phrases['generate']:
             if phrase in text_lower:
-                # Extract the actual programming task with better context
                 task = text_lower
                 
-                # Remove all known command phrases for cleaner extraction
                 for remove_phrase in self.code_phrases['generate']:
                     task = task.replace(remove_phrase, '')
-                
-                # Clean up the extracted task
                 task = task.strip(' .,?!')
                 
-                # Handle cases where the request might be split across multiple parts
                 task_parts = []
                 for part in task.split(' and '):
                     task_parts.append(part.strip())
@@ -338,13 +310,11 @@ class CodeHandler:
                 return {
                     "type": "generate",
                     "request": final_task,
-                    "original_text": text  # Keep original text for reference
+                    "original_text": text  
                 }
         
-        # Enhanced parsing for edit requests with better file detection
         for phrase in self.code_phrases['edit']:
             if phrase in text_lower:
-                # Multiple patterns for file path detection
                 file_patterns = [
                     r'in file (\S+\.py)',
                     r'in (\S+\.py)',
@@ -353,7 +323,6 @@ class CodeHandler:
                     r'modify (\S+\.py)',
                     r'update (\S+\.py)',
                     r'fix (\S+\.py)',
-                    # Handle cases without .py extension
                     r'in file (\S+)(?!\.py)',
                     r'edit (\S+)(?!\.py)',
                     r'modify (\S+)(?!\.py)'
@@ -364,12 +333,10 @@ class CodeHandler:
                     match = re.search(pattern, text_lower)
                     if match:
                         file_path = match.group(1)
-                        # Add .py extension if missing
                         if not file_path.endswith('.py'):
                             file_path += '.py'
                         break
                 
-                # Extract the edit request by removing the file reference
                 edit_instruction = text_lower
                 if file_path:
                     edit_instruction = edit_instruction.replace(file_path, '').strip()
@@ -383,10 +350,8 @@ class CodeHandler:
                     "original_text": text
                 }
         
-        # Improved fallback detection for ambiguous requests
         if ('python' in text_lower and 
             ('program' in text_lower or 'code' in text_lower or 'script' in text_lower)):
-            # Remove common words for cleaner extraction
             request = text_lower
             for word in ['python', 'program', 'code', 'script']:
                 request = request.replace(word, '')

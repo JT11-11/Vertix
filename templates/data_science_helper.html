@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Data Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</head>
+<body class="bg-gray-50">
+    <nav class="bg-white border-b border-gray-100">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <h1 class="text-2xl font-bold text-gray-800">AI Assistant Hub</h1>
+                <div class="flex items-center gap-4">
+                    <a href="/voice-assistant" class="inline-flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-sm">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                        </svg>
+                        Voice Assistant
+                    </a>
+                    <a href="/data-assistant" class="inline-flex items-center px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                        Data Assistant
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto px-4 py-8">
+        <div class="max-w-7xl mx-auto">
+            <div class="bg-white rounded-xl shadow-sm p-8 mb-8">
+                <div class="text-center mb-8">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-4">Data Analysis Assistant</h2>
+                    <p class="text-gray-600">Upload your dataset and get instant AI-powered analysis and visualizations</p>
+                </div>
+
+                <div class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-500 transition-colors">
+                    <input type="file" id="fileInput" class="hidden" accept=".csv,.xlsx,.xls">
+                    <div class="space-y-4">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                        <div class="text-gray-600">
+                            <span class="font-medium">Upload your dataset</span>
+                            <p class="text-sm">.csv, .xlsx, or .xls files</p>
+                        </div>
+                        <button id="uploadButton" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                            Choose File
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analysis Results -->
+            <div id="resultsSection" class="hidden space-y-8">
+                <!-- Loading State -->
+                <div id="loadingIndicator" class="hidden">
+                    <div class="flex flex-col items-center justify-center p-12">
+                        <div class="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
+                        <p class="mt-4 text-lg text-gray-600">Analyzing your data...</p>
+                    </div>
+                </div>
+
+                <!-- Results Content -->
+                <div id="analysisContent" class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- Analysis Card -->
+                    <div class="bg-white rounded-xl shadow-sm p-6">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-4">Analysis Results</h3>
+                        <div id="analysisText" class="prose max-w-none"></div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm p-6">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-4">Visualizations</h3>
+                        <div id="visualizationContainer"></div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm p-6">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">Create Custom Visualization</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <select id="vizType" class="rounded-lg border-gray-300">
+                            <option value="scatter">Scatter Plot</option>
+                            <option value="bar">Bar Chart</option>
+                            <option value="line">Line Chart</option>
+                            <option value="histogram">Histogram</option>
+                        </select>
+                        <select id="xAxis" class="rounded-lg border-gray-300">
+                            <option value="">Select X-Axis</option>
+                        </select>
+                        <select id="yAxis" class="rounded-lg border-gray-300">
+                            <option value="">Select Y-Axis</option>
+                        </select>
+                    </div>
+                    <button id="generateViz" class="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                        Generate Visualization
+                    </button>
+                </div>
+                                <div id="customVizContainer" class="bg-white rounded-xl shadow-sm p-6 mt-4 hidden">
+                    <div id="customVisualization"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const elements = {
+            fileInput: document.getElementById('fileInput'),
+            uploadButton: document.getElementById('uploadButton'),
+            resultsSection: document.getElementById('resultsSection'),
+            loadingIndicator: document.getElementById('loadingIndicator'),
+            analysisContent: document.getElementById('analysisContent'),
+            analysisText: document.getElementById('analysisText'),
+            visualizationContainer: document.getElementById('visualizationContainer'),
+            customVizContainer: document.getElementById('customVizContainer'),
+            vizType: document.getElementById('vizType'),
+            xAxis: document.getElementById('xAxis'),
+            yAxis: document.getElementById('yAxis'),
+            generateViz: document.getElementById('generateViz')
+        };
+
+        let currentData = null;
+
+        elements.uploadButton.addEventListener('click', () => elements.fileInput.click());
+        elements.fileInput.addEventListener('change', handleFileUpload);
+        elements.generateViz.addEventListener('click', generateCustomVisualization);
+
+        
+        async function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            console.log('File selected:', file.name);  // Debug 
+            const formData = new FormData();
+            formData.append('file', file);
+
+            showLoading(true);
+
+            try {
+                console.log('Sending request to /analyze_data');  // Debug 
+                const response = await axios.post('/analyze_data', formData, {
+                    headers: { 
+                        'Content-Type': 'multipart/form-data'
+                    }
+                });
+                console.log('Received response:', response.data);  // Debug 
+
+                if (response.data.status === 'success') {
+                    currentData = response.data;
+                    renderAnalysis(response.data);
+                    updateColumnSelectors(response.data.columns);
+                } else {
+                    showError(response.data.error || 'Analysis failed');
+                }
+            } catch (error) {
+                console.error('Upload error:', error);  // Debug 
+                showError(error.response?.data?.error || error.message || 'File upload failed');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        
+        function renderAnalysis(data) {
+            try {
+                elements.analysisText.innerHTML = data.analysis;
+                const vizContainer = elements.visualizationContainer;
+                vizContainer.innerHTML = '';
+                if (data.visualizations && data.visualizations.length > 0) {
+                    const vizGrid = document.createElement('div');
+                    vizGrid.className = 'grid grid-cols-1 gap-6';
+                    data.visualizations.forEach((viz, index) => {
+                        const vizCard = document.createElement('div');
+                        vizCard.className = 'bg-white rounded-xl shadow-sm p-4 mb-6';
+                        const title = document.createElement('h4');
+                        title.className = 'text-lg font-semibold text-gray-800 mb-4';
+                        title.textContent = viz.title;
+                        vizCard.appendChild(title);
+                        
+                        const plotDiv = document.createElement('div');
+                        plotDiv.id = `viz-${index}`;
+                        plotDiv.className = 'w-full h-[400px]';
+                        vizCard.appendChild(plotDiv);
+                        
+                        vizGrid.appendChild(vizCard);
+                    });
+
+                    vizContainer.appendChild(vizGrid);
+
+                    data.visualizations.forEach((viz, index) => {
+                        const plotElement = document.getElementById(`viz-${index}`);
+                        if (plotElement) {
+                            const layout = {
+                                ...viz.plot.layout,
+                                autosize: true,
+                                margin: { l: 50, r: 30, t: 50, b: 50 },
+                                hovermode: 'closest',
+                                showlegend: true,
+                                legend: { orientation: 'h', y: -0.2 }
+                            };
+
+                            Plotly.newPlot(
+                                plotElement,
+                                viz.plot.data,
+                                layout,
+                                { responsive: true }
+                            ).catch(err => console.error('Plotly error:', err));
+                        }
+                    })
+                    const resizeHandler = () => {
+                        data.visualizations.forEach((_, index) => {
+                            const element = document.getElementById(`viz-${index}`);
+                            if (element) {
+                                Plotly.Plots.resize(element);
+                            }
+                        });
+                    };
+                    window.removeEventListener('resize', resizeHandler);
+                    window.addEventListener('resize', resizeHandler);
+                }
+
+                elements.resultsSection.classList.remove('hidden');
+
+            } catch (error) {
+                console.error('Error rendering analysis:', error);
+                showError('Error rendering analysis: ' + error.message);
+            }
+}
+
+function showError(message) {
+    console.error('Error:', message); 
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'fixed top-4 right-4 bg-red-50 text-red-700 px-6 py-4 rounded-lg shadow-lg z-50';
+    errorDiv.innerHTML = `
+        <div class="flex items-center">
+            <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span class="font-medium">Error:</span>
+            <span class="ml-2">${message}</span>
+        </div>
+    `;
+    document.body.appendChild(errorDiv);
+    setTimeout(() => errorDiv.remove(), 5000);
+}
+
+        function formatAnalysis(text) {
+            return text.split('\n').map(line => {
+                if (line.startsWith('•') || line.startsWith('-')) {
+                    return `<li class="ml-4">${line.substring(1)}</li>`;
+                }
+                if (line.includes(':')) {
+                    const [title, content] = line.split(':');
+                    return `<p><strong>${title}:</strong>${content}</p>`;
+                }
+                return `<p>${line}</p>`;
+            }).join('');
+        }
+
+        function updateColumnSelectors(columns) {
+            const options = columns.map(col => 
+                `<option value="${col}">${col}</option>`
+            ).join('');
+
+            elements.xAxis.innerHTML = '<option value="">Select X-Axis</option>' + options;
+            elements.yAxis.innerHTML = '<option value="">Select Y-Axis</option>' + options;
+        }
+
+        async function generateCustomVisualization() {
+            if (!currentData) return;
+
+            const vizType = elements.vizType.value;
+            const xAxis = elements.xAxis.value;
+            const yAxis = elements.yAxis.value;
+
+            if (!xAxis || (vizType !== 'histogram' && !yAxis)) {
+                showError('Please select all required axes');
+                return;
+            }
+
+            try {
+                const response = await axios.post('/generate_visualization', {
+                    data: currentData.sample_data,
+                    type: vizType,
+                    params: { x: xAxis, y: yAxis }
+                });
+
+                if (response.data.status === 'success') {
+                    elements.customVizContainer.classList.remove('hidden');
+                    Plotly.newPlot('customVisualization', 
+                        response.data.plot.data, 
+                        response.data.plot.layout
+                    );
+                } else {
+                    showError(response.data.error);
+                }
+            } catch (error) {
+                showError(error.message);
+            }
+        }
+
+        function showLoading(show) {
+            elements.loadingIndicator.classList.toggle('hidden', !show);
+            elements.analysisContent.classList.toggle('hidden', show);
+        }
+
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'bg-red-50 text-red-500 p-4 rounded-lg mb-4';
+            errorDiv.textContent = message;
+            elements.resultsSection.insertBefore(errorDiv, elements.analysisContent);
+            setTimeout(() => errorDiv.remove(), 5000);
+        }
+    </script>
+</body>
+</html>

@@ -17,18 +17,21 @@ from doc_writer import DocumentHandler
 from code_service import CodeHandler
 from code_explainer import CodeVisionService
 import os
-
-
-
+from data_science_helper import DataAnalysisService
+from werkzeug.utils import secure_filename
+import pandas as pd
 
 app = Flask(__name__)
 client = os.getenv('OPENAI_API_KEY')
-GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')  # Make sure to set this in your environment
+GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')  
 weather_service = WeatherService()
 youtube_helper = YouTubeHelper()
 document_handler = DocumentHandler(client) 
 code_handler=CodeHandler(client)
 code_vision_service = CodeVisionService(GOOGLE_API_KEY)
+data_analysis_service = DataAnalysisService(GOOGLE_API_KEY)
+UPLOAD_FOLDER = 'uploads'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 emotion_classifier = pipeline(
     "text-classification",
@@ -68,11 +71,9 @@ SAMPLE_RATE = 16000
 CHANNELS = 1
 CHUNK_SIZE = 1024
 conversation_history = []
-
-# Voice activity detection parameters
 SILENCE_THRESHOLD = 0.01
 SILENCE_DURATION = 5
-CHUNK_DURATION = 0.1  # Process audio in 100ms chunks
+CHUNK_DURATION = 0.1  
 CHUNK_SIZE = int(SAMPLE_RATE * CHUNK_DURATION)
 
 class AudioRecorder:
@@ -147,10 +148,8 @@ def record_audio(device_id=None):
         ):
             audio_recorder.recording_active = True
             audio_recorder.last_voice_activity = time.time()
-            
-            # Keep recording until sufficient silence is detected
             while True:
-                time.sleep(0.1)  # Reduce CPU usage
+                time.sleep(0.1) 
                 
                 current_time = time.time()
                 if (current_time - audio_recorder.last_voice_activity > SILENCE_DURATION and 
@@ -162,11 +161,8 @@ def record_audio(device_id=None):
         if not audio_recorder.audio_buffer:
             raise ValueError("No audio data recorded")
         
-        # Use the audio_recorder's buffer instead of undefined audio_data
         audio_data = np.concatenate(audio_recorder.audio_buffer, axis=0)
         temp_filename = f"temp_{int(time.time())}.wav"
-        
-        # Save to temporary WAV file
         sf.write(temp_filename, audio_data, SAMPLE_RATE)
         
         return temp_filename
@@ -188,7 +184,6 @@ def transcribe_audio(file_path):
     except Exception as e:
         print(f"Error transcribing audio: {str(e)}")
         raise
-# Document handling constants to improve command recognition
 DOCUMENT_KEYWORDS = {
     'create': ['type', 'write', 'create', 'make', 'generate', 'compose'],
     'edit': ['edit', 'modify', 'change', 'update', 'revise'],
@@ -202,10 +197,8 @@ def handle_document_command(text):
     """
     text_lower = text.lower()
     
-    # First, check if this is a document-related command
     command_type = None
     
-    # Check for creation commands
     if any(keyword in text_lower for keyword in DOCUMENT_KEYWORDS['create']):
         doc_type, filename, content, generate_content = document_handler.parse_document_command(text)
         if doc_type == 'word':
@@ -213,19 +206,15 @@ def handle_document_command(text):
         else:
             return document_handler.create_text_file(content, filename, generate_content)
     
-    # Check for edit commands
     elif any(keyword in text_lower for keyword in DOCUMENT_KEYWORDS['edit']):
         filepath, edit_instructions = document_handler.parse_edit_command(text)
         if filepath and edit_instructions:
             result = document_handler.edit_document(filepath, edit_instructions)
-            # Add more context to the response
             if "successfully edited" in result:
                 return f"I've updated the document '{filepath}' with your requested changes. The edits have been saved."
             return result
     
-    # Check for read commands
     elif any(keyword in text_lower for keyword in DOCUMENT_KEYWORDS['read']):
-        # Extract filename from the command
         words = text.split()
         for word in words:
             if word.endswith('.txt') or word.endswith('.docx'):
@@ -247,8 +236,6 @@ def get_chatgpt_response(text, emotion):
     print("🤖 Getting AI response...")
     
     text_lower = text.lower()
-
-    # Code Function
     code_request = code_handler.parse_code_request(text)
     if code_request:
         if code_request["type"] == "generate":
@@ -267,7 +254,6 @@ def get_chatgpt_response(text, emotion):
             else:
                 return "Please specify which file you'd like me to edit."
     
-    # Handle music-related commands
     if (('play' in text_lower or 'find' in text_lower or 'search' in text_lower) and 
         ('song' in text_lower or 'music' in text_lower or 'youtube' in text_lower)):
         query = text_lower
@@ -280,19 +266,16 @@ def get_chatgpt_response(text, emotion):
         else:
             return "What song would you like me to search for?"
 
-    # Check for document-related commands first
     doc_response = handle_document_command(text)
     if doc_response:
         return doc_response
 
-    # Handle weather-related queries
     if any(word in text_lower for word in ['weather', 'temperature', 'forecast']):
         city, forecast_days = weather_service.parse_weather_query(text)
         if city:
             weather_data = weather_service.get_weather(city, forecast_days)
             return weather_service.format_weather_response(weather_data, city, forecast_days)
 
-    # Enhanced system message with document capabilities
     system_message = f"""You are a helpful assistant that is aware the user's current emotional state appears to be {emotion}. 
     If the emotion is:
     - joy: maintain an upbeat and encouraging tone
@@ -349,18 +332,13 @@ def conversation_loop(device_id):
             
             dominant_emotion, emotion_scores = emotion_detector.detect_emotion(transcription)
             print(f"Detected emotion: {dominant_emotion}")
-            
-            # Get AI response with document handling
             response = get_chatgpt_response(transcription, dominant_emotion)
             print(f"AI responds: {response}")
-            
-            # Handle long responses from document operations
+
             if len(response) > 300 and any(keyword in transcription.lower() for keyword in ['write', 'create', 'generate', 'edit']):
-                # For document operations, give a shorter speech response
                 speech_text = "I've processed your document request. " + response.split('\n')[0]
                 text_to_speech(speech_text)
             else:
-                # For normal responses, use the full text
                 text_to_speech(response)
             
             conversation_history.append({
@@ -442,9 +420,72 @@ def analyze_code():
             'status': 'error',
             'error': str(e)
         })
+    
+@app.route('/data-assistant')
+def data_assistant():
+    return render_template('data_science_helper.html')
 
+@app.route('/analyze_data', methods=['POST'])
+def analyze_data():
+    print("Received analyze_data request")  # Debug 
     
+    if 'file' not in request.files:
+        return jsonify({'status': 'error', 'error': 'No file uploaded'})
     
+    file = request.files['file']
+    if not file or not data_analysis_service.allowed_file(file.filename):
+        return jsonify({'status': 'error', 'error': 'Invalid file type. Please upload a CSV or Excel file.'})
+    
+    try:
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        
+        print(f"Saving file to: {filepath}")  # Debug 
+        file.save(filepath)
+        
+
+        print("Analyzing data...")  # Debug 
+        result = data_analysis_service.analyze_data(filepath)
+        
+        # Clean up
+        if os.path.exists(filepath):
+            os.remove(filepath)
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"Error in analyze_data: {str(e)}")  # Debug 
+        if os.path.exists(filepath):
+            os.remove(filepath)
+        return jsonify({
+            'status': 'error',
+            'error': f'Error processing file: {str(e)}'
+        })
+
+@app.route('/generate_visualization', methods=['POST'])
+def generate_visualization():
+    try:
+        data = request.get_json()
+        if not data or not all(k in data for k in ['data', 'type', 'params']):
+            return jsonify({
+                'status': 'error',
+                'error': 'Missing required parameters'
+            })
+        df = pd.DataFrame(data['data'])
+        result = data_analysis_service.generate_custom_visualization(
+            df, data['type'], data['params']
+        )
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"Error in generate_visualization: {str(e)}")  # Debug 
+        return jsonify({
+            'status': 'error',
+            'error': f'Error generating visualization: {str(e)}'
+        })
+
+
 if __name__ == '__main__':
     print("🚀 Starting voice chat server with emotion detection...")
     print("Available audio input devices:")
