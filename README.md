@@ -76,7 +76,7 @@ export WEATHER_API_KEY="YOUR_WEATHER_KEY"
 
 ### Clone the Repository:
 ```bash
-git clone https://github.com/yourusername/llm-berkeley-hackathon.git
+git clone https://github.com/your_user_name/Vertix.git
 cd llm-berkeley-hackathon
 ```
 ### Install Dependencies:  
