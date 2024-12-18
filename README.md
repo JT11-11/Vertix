@@ -89,22 +89,20 @@ Set these environment variables in your shell or in a `.env` file:
 export OPENAI_API_KEY="YOUR_OPENAI_KEY"
 export GOOGLE_API_KEY="YOUR_GOOGLE_KEY"
 export WEATHER_API_KEY="YOUR_WEATHER_KEY"
-
-## Installation
-
-### Clone the Repository:
-```bash
-git clone https://github.com/your_user_name/Vertix.git
-cd llm-berkeley-hackathon
 ```
 ### Install Dependencies 💻:  
 ```bash  
 pip install openai google-generativeai transformers gTTS playsound youtube_search requests plotly pandas scipy flask sounddevice soundfile python-docx werkzeug  
 ```
 
+### Clone the Repository:
+```bash
+git clone https://github.com/your_user_name/Vertix.git
+```
+
 ### Running the App  
 ```bash  
-python app.py
+flask run --debug 
 ```
 After the server starts, open your browser and go to:  
 ```
