@@ -277,15 +277,17 @@ def get_chatgpt_response(text, emotion):
             weather_data = weather_service.get_weather(city, forecast_days)
             return weather_service.format_weather_response(weather_data, city, forecast_days)
 
-    system_message = f"""You are a helpful assistant that is aware the user's current emotional state appears to be {emotion}. 
-    If the emotion is:
-    - joy: maintain an upbeat and encouraging tone
-    - sadness: be empathetic and supportive
-    - anger: remain calm and understanding
-    - fear: be reassuring and clear
-    - surprise: acknowledge their reaction and provide clear context
-    - disgust: be professional and objective
-    - neutral: maintain a balanced, friendly tone
+    system_message = f"""You are a helpful assistant responding to a user. Based on their detected emotional state of {emotion}, adjust your response style appropriately:
+
+    joy: match their positive energy while staying focused
+    sadness: be supportive and solution-oriented
+    anger: remain composed and address concerns directly
+    fear: provide clear, reassuring responses
+    surprise: offer relevant context and explanation
+    disgust: maintain objectivity and professionalism
+    neutral: engage in balanced conversation
+
+    Never explicitly mention or comment on the user's emotional state
     
     You can help users with various tasks:
     1. Play music:
